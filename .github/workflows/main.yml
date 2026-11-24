@@ -49,26 +49,6 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Prepare fixed debug keystore
-        run: |
-          mkdir -p keystore ~/.android
-          if [ ! -f keystore/debug.keystore ]; then
-            keytool -genkeypair -keystore keystore/debug.keystore \
-              -storepass android -keypass android \
-              -alias androiddebugkey -keyalg RSA -keysize 2048 \
-              -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-            git config user.name "github-actions"
-            git config user.email "actions@github.com"
-            git add -f keystore/debug.keystore
-            git commit -m "Add fixed debug keystore"
-            git push
-          fi
-          cp keystore/debug.keystore ~/.android/debug.keystore
-          echo "### Fingerprints" >> $GITHUB_STEP_SUMMARY
-          keytool -list -v -keystore keystore/debug.keystore \
-            -storepass android -alias androiddebugkey \
-            | grep -E "SHA1|SHA256" >> $GITHUB_STEP_SUMMARY
-
       - name: Install dependencies
         run: |
           if [ -f package.json ]; then npm install; fi
@@ -106,15 +86,47 @@ jobs:
       - name: Patch Android (permissions)
         run: node scripts/patch-android.js
 
-      - name: Build APK
+      - name: Decode Release Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/release.keystore
+          ls -lh android/app/release.keystore
+
+      - name: Patch build.gradle for Release Signing
+        run: |
+          python3 << 'PY'
+          import pathlib
+          p = pathlib.Path("android/app/build.gradle")
+          t = p.read_text()
+          if "signingConfigs" not in t:
+              t = t.replace("android {", """android {
+                  signingConfigs {
+                      release {
+                          storeFile file("release.keystore")
+                          storePassword System.getenv("KEYSTORE_PASSWORD")
+                          keyAlias System.getenv("KEY_ALIAS")
+                          keyPassword System.getenv("KEY_PASSWORD")
+                      }
+                  }""", 1)
+              t = t.replace("buildTypes {\n        release {", "buildTypes {\n        release {\n            signingConfig signingConfigs.release", 1)
+              p.write_text(t)
+              print("Patched build.gradle")
+          else:
+              print("Already has signingConfigs")
+          PY
+
+      - name: Build AAB Release
         working-directory: android
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew bundleRelease
 
-      - name: Upload APK
+      - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: app-release
+          path: android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
