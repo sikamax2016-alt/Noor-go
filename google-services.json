@@ -14,14 +14,6 @@
       },
       "oauth_client": [
         {
-          "client_id": "798251010686-59g83hab8tokol8rj6javneumhig54s9.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.noorgo.app",
-            "certificate_hash": "0fed340ec4b3b0e7c828250a418806e38fb6ac0d"
-          }
-        },
-        {
           "client_id": "798251010686-esau47tj1dm0rkdqc1lv2d9gggusat65.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
