@@ -1,0 +1,17 @@
+{
+  "name": "noor-go",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Noor Go - rides and delivery",
+  "engines": { "node": ">=22" },
+  "scripts": { "sync": "cap sync android", "open": "cap open android" },
+  "dependencies": {
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/push-notifications": "^8.0.0",
+    "@capacitor-community/background-geolocation": "latest",
+    "@capacitor-firebase/authentication": "latest",
+    "firebase": "latest"
+  },
+  "devDependencies": { "@capacitor/cli": "^8.0.0" }
+}

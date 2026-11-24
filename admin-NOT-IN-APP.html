@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>نور جو - لوحة الإدارة</title>
+<style>
+:root{--bg:#F3F6FC;--card:#fff;--tx:#0F1B3D;--mu:#667;--bl:#2F55D4;--ok:#12A05C;--bad:#D14343;--bd:#E2E8F4}
+@media(prefers-color-scheme:dark){:root{--bg:#0E1424;--card:#172036;--tx:#EAF0FF;--mu:#9AA7C7;--bd:#2A3552}}
+*{box-sizing:border-box}body{margin:0;font-family:Cairo,Tahoma,sans-serif;background:var(--bg);color:var(--tx)}
+.w{max-width:960px;margin:0 auto;padding:16px}.c{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:14px;margin:10px 0}
+input,select,textarea{width:100%;padding:11px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit;margin:6px 0}
+button{border:0;border-radius:10px;padding:10px 14px;font:inherit;font-weight:700;cursor:pointer;background:var(--bl);color:#fff}
+button.o{background:var(--ok)}button.r{background:var(--bad)}button.g{background:transparent;color:var(--bl);border:1px solid var(--bd)}
+.h{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.t{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
+.b{font-size:12px;padding:3px 9px;border-radius:99px;background:var(--bd)}.m{color:var(--mu);font-size:13px}a{color:var(--bl)}
+</style></head><body><div class="w" id="app"><p>جاري التحميل…</p></div>
+<script src="firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script>
+var C=window.NOOR_FB,$=function(i){return document.getElementById(i)},E=function(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+firebase.initializeApp(C);var A=firebase.auth(),D=firebase.firestore(),ST=firebase.storage(),TS=firebase.firestore.FieldValue.serverTimestamp,me=null,role=null,tab='pending';
+var VN={car:'سيارة',bus:'ميكروباص',moto:'موتوسيكل',trike:'ترايسكل'},DK=[['id','البطاقة'],['license','الرخصة'],['selfie','السيلفي'],['vehicle','المركبة']];
+var ROLES={reviewer:'مراجع كباتن',accountant:'محاسب',support:'دعم',dispatcher:'تشغيل'};
+function login(msg){$('app').innerHTML='<div class="c" style="max-width:380px;margin:60px auto"><h2>لوحة إدارة نور جو</h2><input id="em" type="email" dir="ltr" placeholder="البريد الإلكتروني" autocomplete="username"><input id="pw" type="password" dir="ltr" placeholder="كلمة المرور" autocomplete="current-password"><button onclick="signIn()" style="width:100%">دخول</button><p class="m" id="er">'+E(msg||'')+'</p></div>'}
+async function signIn(){try{await A.signInWithEmailAndPassword($('em').value.trim(),$('pw').value)}catch(e){$('er').textContent='بيانات الدخول غير صحيحة'}}
+A.onAuthStateChanged(async function(u){if(!u){me=null;unlocked=false;tries=0;clearTimeout(idle);return login()}
+ try{var s=await D.collection('staff').doc(u.uid).get();if(!s.exists){await A.signOut();return login('الحساب ده مش مسجل كموظف')}me=u;sd=s.data();role=sd.role;unlocked=false;sd.codeHash?askCode():setCode()}catch(e){login('تعذر التحقق من الصلاحيات')}});
+var sd=null,unlocked=false,tries=0,idle=null;
+async function hx(code,salt){var b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(salt+':'+code));return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,'0')}).join('')}
+function codeBox(title,body){$('app').innerHTML='<div class="c" style="max-width:380px;margin:60px auto"><h2>'+title+'</h2>'+body+'<p class="m" id="er"></p><button class="g" onclick="A.signOut()" style="width:100%">خروج</button></div>'}
+function setCode(){codeBox('إنشاء رمز الدخول','<p class="m">اختار رمز من 6 أرقام. هيتطلب منك بعد الباسورد في كل دخول.</p><input id="c1" type="password" inputmode="numeric" maxlength="6" dir="ltr" placeholder="الرمز"><input id="c2" type="password" inputmode="numeric" maxlength="6" dir="ltr" placeholder="أعد كتابة الرمز"><button onclick="saveCode()" style="width:100%">حفظ</button>')}
+async function saveCode(){var a=$('c1').value,b=$('c2').value;if(!/^\d{6}$/.test(a)){$('er').textContent='الرمز لازم 6 أرقام';return}if(a!==b){$('er').textContent='الرمزان غير متطابقين';return}
+ try{var salt=Array.from(crypto.getRandomValues(new Uint8Array(12))).map(function(x){return x.toString(16).padStart(2,'0')}).join(''),h=await hx(a,salt);await D.collection('staff').doc(me.uid).update({codeHash:h,codeSalt:salt});sd.codeHash=h;sd.codeSalt=salt;unlock()}catch(e){$('er').textContent='تعذر الحفظ: '+e.message}}
+function askCode(msg){codeBox('رمز الدخول','<input id="c1" type="password" inputmode="numeric" maxlength="6" dir="ltr" placeholder="رمز الدخول" onkeydown="if(event.key===\'Enter\')chkCode()"><button onclick="chkCode()" style="width:100%">تأكيد</button>');if(msg)$('er').textContent=msg}
+async function chkCode(){var h=await hx($('c1').value,sd.codeSalt);if(h===sd.codeHash){tries=0;unlock()}else{tries++;if(tries>=5){await A.signOut();return}askCode('الرمز غلط. متبقي '+(5-tries)+' محاولات')}}
+function unlock(){unlocked=true;shell();['click','keydown','touchstart'].forEach(function(e){document.removeEventListener(e,bump);document.addEventListener(e,bump)});bump()}
+function bump(){clearTimeout(idle);if(!unlocked)return;idle=setTimeout(function(){unlocked=false;askCode('اتقفلت الجلسة بعد 15 دقيقة بدون نشاط')},15*60*1000)}
+async function resetCode(id){if(!confirm('إعادة تعيين رمز دخول الموظف؟ هيختار رمز جديد في أول دخول.'))return;try{await D.collection('staff').doc(id).update({codeHash:null,codeSalt:null});await D.collection('auditLog').add({by:me.email,uid:me.uid,action:'staff_code_reset',target:id,at:TS()});staffView()}catch(e){alert(e.message)}}
+function shell(){var mg=role==='manager',rv=mg||role==='reviewer';
+ $('app').innerHTML='<div class="h"><h2>لوحة إدارة نور جو</h2><div><span class="b">'+E(mg?'المدير':ROLES[role]||role)+'</span> <span class="m">'+E(me.email)+'</span> <button class="g" onclick="A.signOut()">خروج</button></div></div><div class="t">'+(rv?'<button onclick="go(\'pending\')">طلبات الكباتن</button><button class="g" onclick="go(\'approved\')">المعتمدون</button><button class="g" onclick="go(\'rejected\')">المرفوضون</button>':'')+(mg?'<button class="g" onclick="go(\'staff\')">الموظفون</button>':'')+'</div><div id="v"></div>';
+ if(rv)go('pending');else $('v').innerHTML='<div class="c">صلاحيتك لا تشمل مراجعة الكباتن.</div>'}
+function go(t){tab=t;t==='staff'?staffView():list(t)}
+async function list(st){var v=$('v');v.innerHTML='<p class="m">جاري التحميل…</p>';
+ try{var q=await D.collection('captains').where('status','==',st).get();if(q.empty){v.innerHTML='<div class="c m">لا يوجد.</div>';return}
+  v.innerHTML=q.docs.map(function(d){var x=d.data();return '<div class="c" id="c_'+d.id+'"><div class="h"><b>'+E(x.name||'(بدون اسم)')+'</b><span class="b">'+E(VN[x.vehicle]||x.vehicle)+' · '+E(x.plate||'-')+'</span></div><p class="m" id="p_'+d.id+'">…</p><div id="d_'+d.id+'" class="t">'+DK.map(function(k){return '<a target="_blank" rel="noopener" id="a_'+d.id+'_'+k[0]+'">'+k[1]+'…</a>'}).join(' · ')+'</div>'+(x.reason?'<p class="m">سبب الرفض: '+E(x.reason)+'</p>':'')+'<div class="t">'+(st!=='approved'?'<button class="o" onclick="setSt(\''+d.id+'\',\'approved\')">اعتماد</button>':'')+(st!=='rejected'?'<button class="r" onclick="setSt(\''+d.id+'\',\'rejected\')">رفض</button>':'')+(st==='approved'?'<button class="g" onclick="setSt(\''+d.id+'\',\'suspended\')">إيقاف</button>':'')+'</div></div>'}).join('');
+  q.docs.forEach(function(d){D.collection('users').doc(d.id).get().then(function(u){$('p_'+d.id).textContent='الموبايل: '+((u.data()||{}).phone||'-')});
+   DK.forEach(function(k){var a=$('a_'+d.id+'_'+k[0]);ST.ref('captainDocs/'+d.id+'/'+k[0]).getDownloadURL().then(function(url){a.href=url;a.textContent=k[1]+' ↗'}).catch(function(){a.textContent=k[1]+' (غير مرفوع)'})})})}
+ catch(e){v.innerHTML='<div class="c">تعذر التحميل: '+E(e.message)+'</div>'}}
+async function setSt(id,st){var reason='';if(st==='rejected'){reason=prompt('سبب الرفض؟')||'';if(!reason)return}else if(!confirm(st==='approved'?'تأكيد اعتماد الكابتن؟':'تأكيد الإيقاف؟'))return;
+ try{var b=D.batch();b.update(D.collection('captains').doc(id),{status:st,reason:reason,reviewedBy:me.email,reviewedAt:TS()});b.set(D.collection('auditLog').doc(),{by:me.email,uid:me.uid,action:'captain_'+st,target:id,reason:reason,at:TS()});await b.commit();go(tab)}catch(e){alert('تعذر التنفيذ: '+e.message)}}
+async function staffView(){var v=$('v');v.innerHTML='<div class="c"><h3>إضافة موظف</h3><input id="se" type="email" dir="ltr" placeholder="البريد الإلكتروني"><input id="sp" type="password" dir="ltr" placeholder="كلمة مرور (6 أحرف على الأقل)"><select id="sr">'+Object.keys(ROLES).map(function(k){return '<option value="'+k+'">'+ROLES[k]+'</option>'}).join('')+'</select><button onclick="addStaff()">إضافة</button><p class="m">مدير واحد فقط في النظام، ولا يمكن إضافة مدير آخر من هنا.</p></div><div id="sl"></div>';
+ var q=await D.collection('staff').get();$('sl').innerHTML=q.docs.map(function(d){var x=d.data();return '<div class="c h"><span>'+E(x.email||d.id)+' <span class="b">'+E(x.role==='manager'?'المدير':ROLES[x.role]||x.role)+'</span></span>'+(x.role!=='manager'?'<span><button class="g" onclick="resetCode(\''+d.id+'\')">إعادة الرمز</button> <button class="r" onclick="delStaff(\''+d.id+'\')">حذف</button></span>':'')+'</div>'}).join('')}
+async function addStaff(){var em=$('se').value.trim(),pw=$('sp').value,rl=$('sr').value;if(!em||pw.length<6){alert('اكتب البريد وكلمة مرور 6 أحرف على الأقل');return}
+ var sec=firebase.initializeApp(C,'sec'+Date.now());try{var cr=await sec.auth().createUserWithEmailAndPassword(em,pw);await D.collection('staff').doc(cr.user.uid).set({email:em,role:rl,createdBy:me.email,createdAt:TS()});await D.collection('auditLog').add({by:me.email,uid:me.uid,action:'staff_add',target:em,role:rl,at:TS()});await sec.auth().signOut();staffView()}catch(e){alert('تعذر الإضافة: '+e.message)}finally{try{await sec.delete()}catch(x){}}}
+async function delStaff(id){if(!confirm('حذف الموظف من الصلاحيات؟ (حسابه يفضل موجود لكن بدون صلاحيات)'))return;try{await D.collection('staff').doc(id).delete();await D.collection('auditLog').add({by:me.email,uid:me.uid,action:'staff_remove',target:id,at:TS()});staffView()}catch(e){alert(e.message)}}
+</script></body></html>

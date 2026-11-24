@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore { match /databases/{d}/documents {
+  function signed(){ return request.auth != null; }
+  function uid(){ return request.auth.uid; }
+  function isStaff(){ return signed() && exists(/databases/$(d)/documents/staff/$(uid())); }
+  function role(){ return get(/databases/$(d)/documents/staff/$(uid())).data.role; }
+  function isMgr(){ return isStaff() && role() == 'manager'; }
+  function isCap(){ return signed() && get(/databases/$(d)/documents/captains/$(uid())).data.status == 'approved'; }
+  match /staff/{u} { allow read: if signed() && (uid() == u || isMgr()); allow create, update: if isMgr() && request.resource.data.role != 'manager'; allow delete: if isMgr() && resource.data.role != 'manager';
+    allow update: if uid() == u && resource.data.get('codeHash', null) == null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['codeHash','codeSalt']); }
+  match /users/{u} {
+    allow read: if signed() && (uid() == u || isStaff());
+    allow create: if uid() == u && request.resource.data.keys().hasOnly(['phone','name','createdAt']);
+    allow update: if uid() == u && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','fcmToken']);
+  }
+  match /wallets/{u} { allow read: if signed() && (uid() == u || isStaff()); allow write: if isMgr(); }
+  match /walletRequests/{r} {
+    allow create: if isStaff() && (role() == 'accountant' || role() == 'manager');
+    allow read, update, delete: if isMgr();
+  }
+  match /captains/{u} {
+    allow read: if signed();
+    allow create: if uid() == u && request.resource.data.status == 'pending';
+    allow update: if (uid() == u && resource.data.status == 'approved' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['online','loc']))
+                  || (isStaff() && (role() == 'reviewer' || role() == 'manager'));
+  }
+  match /rides/{r} {
+    allow create: if signed() && request.resource.data.riderId == uid() && request.resource.data.status == 'requested';
+    allow read: if signed() && (resource.data.riderId == uid() || resource.data.driverId == uid() || isStaff() || (resource.data.status == 'requested' && isCap()));
+    allow update: if signed() && (
+      (resource.data.riderId == uid() && request.resource.data.status == 'cancelled') ||
+      (isCap() && resource.data.status == 'requested' && request.resource.data.driverId == uid() && request.resource.data.status == 'accepted') ||
+      (resource.data.driverId == uid()) ||
+      (isStaff() && (role() == 'support' || role() == 'dispatcher' || role() == 'manager')));
+  }
+  match /auditLog/{l} { allow create: if isStaff(); allow read: if isMgr(); }
+}}

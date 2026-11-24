@@ -1,0 +1,10 @@
+{
+  "appId": "com.noorgo.app",
+  "appName": "نور جو",
+  "webDir": "www",
+  "server": { "androidScheme": "https" },
+  "plugins": {
+    "FirebaseAuthentication": { "skipNativeAuth": true, "providers": ["phone"] },
+    "PushNotifications": { "presentationOptions": ["badge", "sound", "alert"] }
+  }
+}
