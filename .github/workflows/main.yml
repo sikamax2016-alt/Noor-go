@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,6 +25,26 @@ jobs:
         with:
           node-version: '24'
 
+      - name: Prepare fixed debug keystore
+        run: |
+          mkdir -p keystore ~/.android
+          if [ ! -f keystore/debug.keystore ]; then
+            keytool -genkeypair -keystore keystore/debug.keystore \
+              -storepass android -keypass android \
+              -alias androiddebugkey -keyalg RSA -keysize 2048 \
+              -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+            git config user.name "github-actions"
+            git config user.email "actions@github.com"
+            git add -f keystore/debug.keystore
+            git commit -m "Add fixed debug keystore"
+            git push
+          fi
+          cp keystore/debug.keystore ~/.android/debug.keystore
+          echo "### Fingerprints" >> $GITHUB_STEP_SUMMARY
+          keytool -list -v -keystore keystore/debug.keystore \
+            -storepass android -alias androiddebugkey \
+            | grep -E "SHA1|SHA256" >> $GITHUB_STEP_SUMMARY
+
       - name: Install dependencies
         run: |
           if [ -f package.json ]; then npm install; fi
@@ -33,6 +56,12 @@ jobs:
         run: |
           if [ ! -d android ]; then npx cap add android; fi
           npx cap sync android
+
+      - name: Copy google-services.json
+        run: |
+          if [ -f google-services.json ]; then
+            cp google-services.json android/app/google-services.json
+          fi
 
       - name: Build APK
         working-directory: android
