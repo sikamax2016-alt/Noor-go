@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "798251010686",
+    "project_id": "noor-go-61c2a",
+    "storage_bucket": "noor-go-61c2a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:798251010686:android:b21b848ab2f18087a5e62f",
+        "android_client_info": {
+          "package_name": "com.noorgo.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "798251010686-59g83hab8tokol8rj6javneumhig54s9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.noorgo.app",
+            "certificate_hash": "0fed340ec4b3b0e7c828250a418806e38fb6ac0d"
+          }
+        },
+        {
+          "client_id": "798251010686-esau47tj1dm0rkdqc1lv2d9gggusat65.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.noorgo.app",
+            "certificate_hash": "3cd6e82cdab0a70424ad32d0054baf7965c48f80"
+          }
+        },
+        {
+          "client_id": "798251010686-7uvtunlora7tqd05gg5507k0r9q2kpo4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDh7ISkKhWehqoHHMHoCoUbthECOH8SZE8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "798251010686-7uvtunlora7tqd05gg5507k0r9q2kpo4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
