@@ -11,16 +11,26 @@ service cloud.firestore { match /databases/{d}/documents {
   match /users/{u} {
     allow read: if signed() && (uid() == u || isStaff());
     allow create: if uid() == u && request.resource.data.keys().hasOnly(['phone','name','createdAt']);
+    allow delete: if uid() == u;
     allow update: if uid() == u && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','fcmToken']);
   }
   match /wallets/{u} { allow read: if signed() && (uid() == u || isStaff()); allow write: if isMgr(); }
   match /walletRequests/{r} {
-    allow create: if isStaff() && (role() == 'accountant' || role() == 'manager');
-    allow read, update, delete: if isMgr();
+    allow create: if signed() && request.resource.data.uid == uid() && request.resource.data.status == 'pending' && request.resource.data.amount >= 10 && request.resource.data.amount <= 5000;
+    allow read: if signed() && (resource.data.uid == uid() || isMgr() || (isStaff() && role() == 'accountant'));
+    allow update, delete: if isMgr();
+  }
+  match /promos/{c} { allow get: if signed(); allow list: if isMgr(); allow write: if isMgr(); }
+  match /redemptions/{id} { allow create: if signed() && id.matches(uid() + '_.*') && request.resource.data.uid == uid(); allow get: if signed() && id.matches(uid() + '_.*'); allow list: if isMgr(); }
+  match /tickets/{t} {
+    allow create: if signed() && request.resource.data.uid == uid() && request.resource.data.status == 'open';
+    allow read: if signed() && (resource.data.uid == uid() || isMgr() || (isStaff() && role() == 'support'));
+    allow update: if isMgr() || (isStaff() && role() == 'support');
   }
   match /captains/{u} {
     allow read: if signed();
     allow create: if uid() == u && request.resource.data.status == 'pending';
+    allow delete: if uid() == u;
     allow update: if (uid() == u && resource.data.status == 'approved' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['online','loc']))
                   || (isStaff() && (role() == 'reviewer' || role() == 'manager'));
   }
