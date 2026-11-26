@@ -4,7 +4,11 @@
   "private": true,
   "description": "Noor Go - rides and delivery",
   "engines": { "node": ">=22" },
-  "scripts": { "sync": "cap sync android", "open": "cap open android" },
+  "scripts": {
+    "build": "node scripts/build-web.js",
+    "sync": "npm run build && cap sync android",
+    "open": "cap open android"
+  },
   "dependencies": {
     "@capacitor/core": "^8.0.0",
     "@capacitor/android": "^8.0.0",

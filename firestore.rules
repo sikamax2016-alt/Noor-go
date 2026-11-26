@@ -6,6 +6,12 @@ service cloud.firestore { match /databases/{d}/documents {
   function role(){ return get(/databases/$(d)/documents/staff/$(uid())).data.role; }
   function isMgr(){ return isStaff() && role() == 'manager'; }
   function isCap(){ return signed() && get(/databases/$(d)/documents/captains/$(uid())).data.status == 'approved'; }
+  function rideTransition(from, to){
+    return (from == 'requested' && (to == 'accepted' || to == 'cancelled'))
+        || (from == 'accepted' && (to == 'arrived' || to == 'cancelled'))
+        || (from == 'arrived' && (to == 'started' || to == 'cancelled'))
+        || (from == 'started' && to == 'completed');
+  }
   match /staff/{u} { allow read: if signed() && (uid() == u || isMgr()); allow create, update: if isMgr() && request.resource.data.role != 'manager'; allow delete: if isMgr() && resource.data.role != 'manager';
     allow update: if uid() == u && resource.data.get('codeHash', null) == null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['codeHash','codeSalt']); }
   match /users/{u} {
@@ -38,9 +44,24 @@ service cloud.firestore { match /databases/{d}/documents {
     allow create: if signed() && request.resource.data.riderId == uid() && request.resource.data.status == 'requested';
     allow read: if signed() && (resource.data.riderId == uid() || resource.data.driverId == uid() || isStaff() || (resource.data.status == 'requested' && isCap()));
     allow update: if signed() && (
-      (resource.data.riderId == uid() && request.resource.data.status == 'cancelled') ||
-      (isCap() && resource.data.status == 'requested' && request.resource.data.driverId == uid() && request.resource.data.status == 'accepted') ||
-      (resource.data.driverId == uid()) ||
+      (resource.data.riderId == uid()
+        && (resource.data.status == 'requested' || resource.data.status == 'accepted')
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.cancelledBy == uid()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','cancelledBy','cancelFee'])) ||
+      (isCap()
+        && resource.data.status == 'requested'
+        && request.resource.data.status == 'accepted'
+        && request.resource.data.driverId == uid()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','driverId'])) ||
+      (isCap()
+        && resource.data.driverId == uid()
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['driverLoc'])) ||
+      (isCap()
+        && resource.data.driverId == uid()
+        && rideTransition(resource.data.status, request.resource.data.status)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])) ||
       (isStaff() && (role() == 'support' || role() == 'dispatcher' || role() == 'manager')));
   }
   match /auditLog/{l} { allow create: if isStaff(); allow read: if isMgr(); }
