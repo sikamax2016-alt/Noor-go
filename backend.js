@@ -15,6 +15,10 @@ NG.promo=async function(code){var s=await D.collection('promos').doc(code).get()
 NG.redeem=function(code){return D.collection('redemptions').doc(A.currentUser.uid+'_'+code).set({uid:A.currentUser.uid,code:code,at:TS()})};
 NG.ticket=function(m){return D.collection('tickets').add({uid:A.currentUser.uid,phone:A.currentUser.phoneNumber||'',message:m,status:'open',at:TS()})};
 NG.deleteAccount=async function(){var u=A.currentUser;try{await D.collection('captains').doc(u.uid).delete()}catch(e){}try{await D.collection('users').doc(u.uid).delete()}catch(e){}await u.delete()};
+NG.myRides=function(cb){return D.collection('rides').where('riderId','==',A.currentUser.uid).onSnapshot(function(q){cb(q.docs.map(function(d){return Object.assign({id:d.id},d.data())}))},function(){})};
+NG.driverRides=function(cb){return D.collection('rides').where('driverId','==',A.currentUser.uid).onSnapshot(function(q){cb(q.docs.map(function(d){return Object.assign({id:d.id},d.data())}))},function(){})};
+NG.profile=function(cb){return D.collection('users').doc(A.currentUser.uid).onSnapshot(function(s){cb(s.data()||{})},function(){})};
+NG.setName=function(n){return D.collection('users').doc(A.currentUser.uid).update({name:n})};
 NG.user=function(){return A&&A.currentUser};
 NG.signOut=function(){return A.signOut()};
 NG.requestRide=async function(r){var ref=await D.collection('rides').add(Object.assign({riderId:A.currentUser.uid,status:'requested',createdAt:TS()},r));return ref.id};

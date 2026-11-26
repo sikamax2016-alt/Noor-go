@@ -9,7 +9,7 @@ function stop(w){if(w)try{w()}catch(e){}return null}
 R.request=async function(){R.perm();
  if(!S.live||!S.live.lat){S.scr='';render();toast('حدد الوجهة بالبحث أو الخريطة','Pick the destination by search or map');return}
  var f=S.from||{name:frn(),lat:PU[0],lon:PU[1]};
- try{if(S.promo&&NG.redeem)await NG.redeem(S.promo.code);var id=await NG.requestRide({type:S.sel,from:{name:f.name,lat:f.lat,lon:f.lon},to:{name:S.live.name,lat:S.live.lat,lon:S.live.lon},km:S.live.km,fare:fare(S.sel)-disc(),discount:disc(),promo:S.promo?S.promo.code:'',riderTag:'***'+String((NG.user()||{}).phoneNumber||'').slice(-3),pay:S.pay,payRef:S.vsn||''});
+ try{if(S.promo&&NG.redeem)await NG.redeem(S.promo.code);var id=await NG.requestRide({type:S.sel,from:{name:f.name,lat:f.lat,lon:f.lon},to:{name:S.live.name,lat:S.live.lat,lon:S.live.lon},km:S.live.km,fare:fare(S.sel)-disc(),discount:disc(),promo:S.promo?S.promo.code:'',riderTag:S.name||('***'+String((NG.user()||{}).phoneNumber||'').slice(-3)),pay:S.pay,payRef:S.vsn||''});
   S.promo=null;S.rid=id;S.ride={status:'requested',from:f,to:S.live,fare:fare(S.sel)};S.scr='ride';
   rw=stop(rw);rw=NG.watchRide(id,function(d){var pv=(S.ride||{}).status;S.ride=d;if(d.status!==pv&&RM[d.status])R.note(RM[d.status]);if(d.status==='completed'||d.status==='cancelled')rw=stop(rw);render()});render()}
  catch(e){toast('تعذر إرسال الطلب','Could not send the request')}};
@@ -20,7 +20,7 @@ R.draw=function(){var d=S.ride;if(!d||!d.from)return;MP.lat=d.from.lat;MP.lon=d.
  function put(id,l){var e=$(id);if(!e||!l)return;var p=ll2px(l.lat,l.lon,MP.z);e.style.left=(w/2+p[0]-o[0])+'px';e.style.top=(h/2+p[1]-o[1])+'px'}put('mk1',d.from);put('mk2',d.driverLoc)};
 R.pos=function(lat,lon){S.me={lat:lat,lon:lon};if(Date.now()-lt<5000)return;lt=Date.now();if(!S.scr&&S.cap&&S.tab==='home')capDraw();NG.pushLoc(lat,lon,S.crid||null).catch(function(){})};
 R.dist=function(a,b){var x=Math.PI/180,dl=(b.lat-a.lat)*x,dn=(b.lon-a.lon)*x,h=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*x)*Math.cos(b.lat*x)*Math.sin(dn/2)*Math.sin(dn/2);return 12742*Math.asin(Math.sqrt(h))};
-R.boot=function(){NG.wallet(function(b){S.bal=b;render()});NG.myTopups(function(l){S.rq=l;render()})};
+R.boot=function(){NG.profile(function(p){S.name=p.name||'';render()});NG.myRides(function(l){S.hist=l;render()});NG.driverRides(function(l){S.drv=l;render()});NG.wallet(function(b){S.bal=b;render()});NG.myTopups(function(l){S.rq=l;render()})};
 R.apply=function(){NG.applyCaptain({vehicle:S.vt||'car',name:S.cnm||'',plate:S.plt||''}).catch(function(){})};
 R.online=function(on){if(!R.on())return;
  NG.online(on).catch(function(){S.on=0;render();toast('حسابك لسه مش معتمد من الإدارة','Your account is not approved yet')});
