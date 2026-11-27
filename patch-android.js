@@ -7,6 +7,15 @@ for (const p of perms) {
   const tag = `<uses-permission android:name="android.permission.${p}" />`;
   if (!m.includes(`android.permission.${p}"`)) m = m.replace('</manifest>', `    ${tag}\n</manifest>`);
 }
+const linkFilter = `            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="noor-go-61c2a.firebaseapp.com" android:pathPrefix="/__/auth/links" />
+            </intent-filter>`;
+if (!m.includes('android.host="noor-go-61c2a.firebaseapp.com"') && !m.includes('android:host="noor-go-61c2a.firebaseapp.com"')) {
+  m = m.replace('        </activity>', `\n${linkFilter}\n        </activity>`);
+}
 fs.writeFileSync(mf, m);
 if (process.env.KS_FILE) {
   const gf = 'android/app/build.gradle';
