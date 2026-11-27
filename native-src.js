@@ -1,5 +1,6 @@
 // جسر الإضافات الأصلية (بيتجمّع بـ esbuild إلى www/native.js وقت البناء)
 import { Capacitor, registerPlugin } from '@capacitor/core';
+import { App } from '@capacitor/app';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 
@@ -22,6 +23,9 @@ if (Capacitor.isNativePlatform()) {
   N.phone = (p) => new Promise((res, rej) => {
     FirebaseAuthentication.addListener('phoneCodeSent', (e) => res(e.verificationId));
     FirebaseAuthentication.signInWithPhoneNumber({ phoneNumber: p }).then((r) => { if (r && r.verificationId) res(r.verificationId); }).catch(rej);
+  });
+  App.addListener('appUrlOpen', ({ url }) => {
+    if (url) window.dispatchEvent(new CustomEvent('noor:email-link', { detail: url }));
   });
   N.push = async (save) => {
     try {

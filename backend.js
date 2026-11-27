@@ -5,8 +5,12 @@ function ld(u){return new Promise(function(r,j){var s=document.createElement('sc
 var B='https://www.gstatic.com/firebasejs/10.12.2/firebase-';
 NG.ready=ld(B+'app-compat.js').then(function(){return Promise.all(['auth','firestore','storage'].map(function(m){return ld(B+m+'-compat.js')}))}).then(function(){firebase.initializeApp(C);A=firebase.auth();D=firebase.firestore();ST=firebase.storage();A.useDeviceLanguage()});
 var TS=function(){return firebase.firestore.FieldValue.serverTimestamp()};
+async function ensureUser(u){var ref=D.collection('users').doc(u.uid),s=await ref.get();if(!s.exists)await ref.set({email:u.email||null,phone:u.phoneNumber||null,name:'',createdAt:TS()});return u}
 NG.sendOtp=async function(p){await NG.ready;if(window.NATIVE&&window.NATIVE.phone){NG.vid=await NATIVE.phone(p);return}if(!NG.rv){var d=document.createElement('div');d.id='rc';document.body.appendChild(d);NG.rv=new firebase.auth.RecaptchaVerifier('rc',{size:'invisible'})}conf=await A.signInWithPhoneNumber(p,NG.rv)};
-NG.verifyOtp=async function(code){var u=window.NATIVE&&NG.vid?(await A.signInWithCredential(firebase.auth.PhoneAuthProvider.credential(NG.vid,code))).user:(await conf.confirm(code)).user,ref=D.collection('users').doc(u.uid),s=await ref.get();if(!s.exists)await ref.set({phone:u.phoneNumber,name:'',createdAt:TS()});return u};
+NG.verifyOtp=async function(code){var u=window.NATIVE&&NG.vid?(await A.signInWithCredential(firebase.auth.PhoneAuthProvider.credential(NG.vid,code))).user:(await conf.confirm(code)).user;return ensureUser(u)};
+var EMAIL_LINK_URL='https://noor-go-61c2a.firebaseapp.com/finishSignUp';
+NG.sendEmailLink=async function(email){await NG.ready;email=String(email||'').trim().toLowerCase();if(!/^\S+@\S+\.\S+$/.test(email))throw new Error('auth/invalid-email');var settings={url:EMAIL_LINK_URL,handleCodeInApp:true,android:{packageName:'com.noorgo.app',installApp:true,minimumVersion:'1'}};await A.sendSignInLinkToEmail(email,settings);localStorage.setItem('noorEmailForSignIn',email);return true};
+NG.completeEmailLink=async function(url,email){await NG.ready;url=url||location.href;if(!A.isSignInWithEmailLink(url))return null;email=String(email||localStorage.getItem('noorEmailForSignIn')||'').trim().toLowerCase();if(!email)throw new Error('auth/email-required-to-complete-link');var u=(await A.signInWithEmailLink(email,url)).user;localStorage.removeItem('noorEmailForSignIn');return ensureUser(u)};
 NG.saveToken=function(t){return D.collection('users').doc(A.currentUser.uid).update({fcmToken:t}).catch(function(){})};
 NG.wallet=function(cb){return D.collection('wallets').doc(A.currentUser.uid).onSnapshot(function(s){cb((s.data()||{}).balance||0)},function(){})};
 NG.topup=function(amt,ph){return D.collection('walletRequests').add({uid:A.currentUser.uid,amount:amt,phone:ph,status:'pending',at:TS()})};
@@ -31,4 +35,7 @@ NG.pushLoc=function(lat,lon,rideId){var l={lat:lat,lon:lon,t:Date.now()},b=D.bat
 NG.online=function(on){return D.collection('captains').doc(A.currentUser.uid).update({online:!!on})};
 NG.applyCaptain=function(f){return D.collection('captains').doc(A.currentUser.uid).set(Object.assign({status:'pending',online:false,createdAt:TS()},f))};
 NG.uploadDoc=async function(kind,file){var r=ST.ref('captainDocs/'+A.currentUser.uid+'/'+kind);await r.put(file);return r.fullPath};
+function publish(u){window.NOOR_EMAIL_USER=u;window.dispatchEvent(new CustomEvent('noor:auth-complete',{detail:u}))}
+NG.ready.then(function(){var url=window.__NOOR_EMAIL_LINK||location.href;if(A.isSignInWithEmailLink(url)){setTimeout(function(){NG.completeEmailLink(url).then(publish).catch(function(e){window.NOOR_EMAIL_ERROR=e})},0)}});
+window.addEventListener('noor:email-link',function(e){NG.completeEmailLink(e.detail).then(publish).catch(function(err){window.NOOR_EMAIL_ERROR=err;window.dispatchEvent(new CustomEvent('noor:auth-error',{detail:err}))})});
 })();
