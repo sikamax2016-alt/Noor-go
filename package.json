@@ -6,7 +6,8 @@
   "engines": { "node": ">=22" },
   "scripts": {
     "build": "node scripts/build-web.js",
-    "sync": "npm run build && cap sync android",
+    "bundle:native": "esbuild native-src.js --bundle --minify --format=iife --outfile=www/native.js",
+    "sync": "npm run build && npm run bundle:native && cap sync android",
     "open": "cap open android"
   },
   "dependencies": {
@@ -17,5 +18,8 @@
     "@capacitor-firebase/authentication": "latest",
     "firebase": "latest"
   },
-  "devDependencies": { "@capacitor/cli": "^8.0.0" }
+  "devDependencies": {
+    "@capacitor/cli": "^8.0.0",
+    "esbuild": "^0.25.0"
+  }
 }

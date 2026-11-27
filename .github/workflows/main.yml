@@ -73,15 +73,14 @@ jobs:
         run: |
           if [ -f package.json ]; then npm install; fi
 
+      - name: Build web assets
+        run: npm run build --if-present
+
       - name: Bundle native bridge
         run: |
           test -f native-src.js || { echo "ERROR: native-src.js is missing from the repo root"; exit 1; }
-          npm install --no-save esbuild
-          npx esbuild native-src.js --bundle --minify --format=iife --outfile=www/native.js
+          npm run bundle:native
           echo "native bundle: $(wc -c < www/native.js) bytes" >> $GITHUB_STEP_SUMMARY
-
-      - name: Build web assets
-        run: npm run build --if-present
 
       - name: Add Android platform
         run: |
