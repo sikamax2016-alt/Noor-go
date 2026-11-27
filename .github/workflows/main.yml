@@ -85,6 +85,15 @@ jobs:
       - name: Add Android platform
         run: |
           if [ ! -d android ]; then npx cap add android; fi
+
+      - name: Apply Noor Go Android launcher icon
+        run: |
+          test -d android-icons || { echo "ERROR: android-icons is missing"; exit 1; }
+          for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            test -f "android-icons/mipmap-$density/ic_launcher.png" || exit 1
+            cp -f android-icons/mipmap-$density/ic_launcher*.png "android/app/src/main/res/mipmap-$density/"
+          done
+
           npx cap sync android
 
       - name: Verify copied assets
