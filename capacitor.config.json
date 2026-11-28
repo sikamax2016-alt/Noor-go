@@ -4,7 +4,7 @@
   "webDir": "www",
   "server": { "androidScheme": "https" },
   "plugins": {
-    "FirebaseAuthentication": { "skipNativeAuth": true, "providers": ["phone"] },
+    "FirebaseAuthentication": { "skipNativeAuth": true, "providers": ["google"] },
     "PushNotifications": { "presentationOptions": ["badge", "sound", "alert"] }
   }
 }
