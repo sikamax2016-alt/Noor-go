@@ -37,6 +37,11 @@ if (Capacitor.isNativePlatform()) {
       } catch (e) { finish(rej, e); }
     });
   };
+  N.google = async () => {
+    const r = await FirebaseAuthentication.signInWithGoogle();
+    if (!r || !r.credential || !r.credential.idToken) throw new Error('google-id-token-missing');
+    return { idToken: r.credential.idToken, accessToken: r.credential.accessToken || null };
+  };
   App.addListener('appUrlOpen', ({ url }) => {
     if (url) window.dispatchEvent(new CustomEvent('noor:email-link', { detail: url }));
   });
