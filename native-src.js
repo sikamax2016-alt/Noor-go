@@ -20,10 +20,23 @@ if (Capacitor.isNativePlatform()) {
     } catch (e) { wid = null; }
   };
   N.stop = async () => { if (wid === null) return; try { await BG.removeWatcher({ id: wid }); } catch (e) {} wid = null; };
-  N.phone = (p) => new Promise((res, rej) => {
-    FirebaseAuthentication.addListener('phoneCodeSent', (e) => res(e.verificationId));
-    FirebaseAuthentication.signInWithPhoneNumber({ phoneNumber: p }).then((r) => { if (r && r.verificationId) res(r.verificationId); }).catch(rej);
-  });
+  N.phone = async (p) => {
+    let done = false;
+    let timer;
+    let sent;
+    let failed;
+    const cleanup = () => { clearTimeout(timer); try { sent && sent.remove(); failed && failed.remove(); } catch (e) {} };
+    return new Promise(async (res, rej) => {
+      const finish = (fn, value) => { if (done) return; done = true; cleanup(); fn(value); };
+      try {
+        sent = await FirebaseAuthentication.addListener('phoneCodeSent', (e) => finish(res, e.verificationId));
+        failed = await FirebaseAuthentication.addListener('phoneVerificationFailed', (e) => finish(rej, new Error((e && (e.message || e.code)) || 'phone-verification-failed')));
+        timer = setTimeout(() => finish(rej, new Error('phone-verification-timeout')), 30000);
+        const r = await FirebaseAuthentication.signInWithPhoneNumber({ phoneNumber: p });
+        if (r && r.verificationId) finish(res, r.verificationId);
+      } catch (e) { finish(rej, e); }
+    });
+  };
   App.addListener('appUrlOpen', ({ url }) => {
     if (url) window.dispatchEvent(new CustomEvent('noor:email-link', { detail: url }));
   });

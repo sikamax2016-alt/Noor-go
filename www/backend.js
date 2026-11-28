@@ -3,7 +3,7 @@
 if(!NG.on)return;
 function ld(u){return new Promise(function(r,j){var s=document.createElement('script');s.src=u;s.onload=r;s.onerror=j;document.head.appendChild(s)})}
 var B='https://www.gstatic.com/firebasejs/10.12.2/firebase-';
-NG.ready=ld(B+'app-compat.js').then(function(){return Promise.all(['auth','firestore','storage'].map(function(m){return ld(B+m+'-compat.js')}))}).then(function(){firebase.initializeApp(C);A=firebase.auth();D=firebase.firestore();ST=firebase.storage();A.useDeviceLanguage()});
+NG.ready=Promise.race([ld(B+'app-compat.js').then(function(){return Promise.all(['auth','firestore','storage'].map(function(m){return ld(B+m+'-compat.js')}))}).then(function(){firebase.initializeApp(C);A=firebase.auth();D=firebase.firestore();ST=firebase.storage();A.useDeviceLanguage()}),new Promise(function(_,j){setTimeout(function(){j(new Error('firebase-timeout'))},15000)})]).catch(function(e){NG.error=e;throw e});
 var TS=function(){return firebase.firestore.FieldValue.serverTimestamp()};
 async function ensureUser(u){var ref=D.collection('users').doc(u.uid),s=await ref.get();if(!s.exists)await ref.set({email:u.email||null,phone:u.phoneNumber||null,name:'',createdAt:TS()});return u}
 NG.sendOtp=async function(p){await NG.ready;if(window.NATIVE&&window.NATIVE.phone){NG.vid=await NATIVE.phone(p);return}if(!NG.rv){var d=document.createElement('div');d.id='rc';document.body.appendChild(d);NG.rv=new firebase.auth.RecaptchaVerifier('rc',{size:'invisible'})}conf=await A.signInWithPhoneNumber(p,NG.rv)};
